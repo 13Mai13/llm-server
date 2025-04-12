@@ -18,7 +18,7 @@ def create_app() -> FastAPI:
         # lifespan=lifespan, #TODO: Set lifespan
     )
     
-    app.include_router(health.api_router) # TODO: Need to add the correct API Router! 
+    app.include_router(health.api_router)
     
     return app
 
