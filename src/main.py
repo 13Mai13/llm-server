@@ -1,16 +1,11 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException
 import httpx
-from dotenv import load_dotenv
 import os
 from api.routers import health
+from config import get_settings
 
-def load_configs():
-    # TODO: Check how to do this with FastAPI -> There is a better way
-    load_dotenv()
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
-        print("Warning: GROQ_API_KEY not found in environment variables")
+settings = get_settings()
 
 def create_app() -> FastAPI:
     """
@@ -63,4 +58,4 @@ app = create_app()
 #             raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host=settings.HOST, port=settings.PORT, reload=True)
