@@ -13,13 +13,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """
     Middleware for rate limiting requests by client IP address.
     
-    Uses a simple in-memory counter. For production use, consider
-    implementing a Redis-based rate limiter for distributed deployments.
+    Uses a sliding window rate limiting approach with in-memory tracking.
     """
-    def __init__(self, app: ASGIApp):
+    def __init__(self, app: ASGIApp, max_requests: int = None):
         super().__init__(app)
-        self.rate_limits: Dict[str, Dict[str, int]] = {}
+        self.rate_limits: Dict[str, Dict[float, int]] = {}
         self.window_seconds = 60  # 1 minute window
+        self._max_requests = max_requests or getattr(settings, 'MAX_REQUESTS_PER_MINUTE', 30)
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Implement rate limiting logic."""
@@ -27,42 +27,33 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/api/v1/health":
             return await call_next(request)
         
-        # Get client IP address
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = self._get_client_ip(request)
         
-        # Clean up expired rate limit entries
-        current_time = int(time.time())
-        self._cleanup_expired_entries(current_time)
+        current_time = time.time()
         
-        # Check if client has exceeded rate limit
         if self._is_rate_limited(client_ip, current_time):
-            # logger.warning(f"Rate limit exceeded for client {client_ip}")
-            # increment_error_count(error_type="rate_limit")
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Rate limit exceeded. Please try again later."},
             )
         
-        # Process the request
         return await call_next(request)
 
-    def _cleanup_expired_entries(self, current_time: int) -> None:
-        """Clean up expired rate limit entries."""
-        expired_time = current_time - self.window_seconds
-        
-        for client_ip in list(self.rate_limits.keys()):
-            self.rate_limits[client_ip] = {
-                ts: count
-                for ts, count in self.rate_limits[client_ip].items()
-                if int(ts) > expired_time
-            }
-            
-            if not self.rate_limits[client_ip]:
-                del self.rate_limits[client_ip]
-
-    def _is_rate_limited(self, client_ip: str, current_time: int) -> bool:
+    def _get_client_ip(self, request: Request) -> str:
         """
-        Check if the client has exceeded the rate limit.
+        Extract client IP address, handling various scenarios.
+        
+        Prefers X-Forwarded-For header for clients behind proxies.
+        """
+        forwarded_for = request.headers.get('X-Forwarded-For')
+        if forwarded_for:
+            return forwarded_for.split(',')[0].strip()
+        
+        return request.client.host if request.client else "unknown"
+
+    def _is_rate_limited(self, client_ip: str, current_time: float) -> bool:
+        """
+        Check if the client has exceeded the rate limit using a sliding window.
         
         Args:
             client_ip: The client IP address
@@ -71,25 +62,27 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         Returns:
             bool: True if the client has exceeded the rate limit, False otherwise
         """
-        # Initialize rate limit entry for client if not exists
         if client_ip not in self.rate_limits:
             self.rate_limits[client_ip] = {}
+        
+        # Remove expired entries
+        window_start = current_time - self.window_seconds
+        self.rate_limits[client_ip] = {
+            timestamp: count 
+            for timestamp, count in self.rate_limits[client_ip].items() 
+            if timestamp > window_start
+        }
         
         # Count requests within the window
         current_count = sum(self.rate_limits[client_ip].values())
         
-        # If client has exceeded rate limit, return True
-        if current_count >= settings.MAX_REQUESTS_PER_MINUTE:
+        if current_count >= self._max_requests:
             return True
         
-        # Otherwise, increment count and return False
-        time_bucket = str(current_time)
-        if time_bucket not in self.rate_limits[client_ip]:
-            self.rate_limits[client_ip][time_bucket] = 0
+        existing_count = self.rate_limits[client_ip].get(current_time, 0)
+        self.rate_limits[client_ip][current_time] = existing_count + 1
         
-        self.rate_limits[client_ip][time_bucket] += 1
         return False
-
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """
@@ -108,11 +101,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Log request
         # logger.info(f"Request: {method} {path}{'?' + query if query else ''} from {client_ip}")
         
-        # Process request
         try:
             response = await call_next(request)
-            
-                    
             return response
         except Exception as e:
             # Log exception
@@ -125,15 +115,11 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
     """
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Enforce request timeout."""
-        # Skip timeout for certain endpoints
         if request.url.path == "/api/v1/health":
             return await call_next(request)
         
-        # Set timeout based on configuration
         timeout = settings.REQUEST_TIMEOUT
         
-        # We'd implement proper timeout logic here, but for simplicity,
-        # we'll just add the timeout header to the response.
         response = await call_next(request)
         response.headers["X-Request-Timeout"] = str(timeout)
         
@@ -147,7 +133,6 @@ def add_middlewares(app: FastAPI) -> None:
     Args:
         app: The FastAPI application
     """
-    # Add middlewares in reverse order (last added is executed first)
     app.add_middleware(TimeoutMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(RateLimitMiddleware)
