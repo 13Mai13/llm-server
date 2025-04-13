@@ -1,7 +1,7 @@
 import logging
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import APIKeyHeader
-from config import get_settings, Settings
+from src.config import get_settings, Settings
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +25,14 @@ async def authenticate_request(
     Raises:
         HTTPException: If authentication fails
     """
-    # Skip authentication for development mode if enabled
-    if settings.MODE:
-        return True
     
     if not api_key:
         api_key = request.query_params.get("api_key")
     
     if not api_key:
         api_key = request.cookies.get("api_key")
+
+    
     
     if not api_key or api_key != settings.API_KEY:
         logger.warning(

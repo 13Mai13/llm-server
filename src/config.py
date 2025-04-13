@@ -19,7 +19,6 @@ class Settings(BaseSettings):
     # API settings
     API_KEY: Optional[str] = None
     DEBUG: bool = False
-    MODE: str = "local"
     LOG_LEVEL: str = "INFO"
     
     # Server settings

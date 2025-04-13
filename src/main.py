@@ -2,8 +2,8 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 import httpx
 import os
-from api.routers import health
-from config import get_settings
+from src.api.routers import health
+from src.config import get_settings
 
 settings = get_settings()
 

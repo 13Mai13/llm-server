@@ -1,5 +1,5 @@
-from api.routers import api_router
-from api.models import HealthResponse
+from src.api.routers import api_router
+from src.api.models import HealthResponse
 
 @api_router.get(
     "/health",
