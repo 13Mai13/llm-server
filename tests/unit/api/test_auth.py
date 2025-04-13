@@ -1,5 +1,3 @@
-
-
 def test_auth_success(test_client):
     """Test successful authentication with valid API key."""
     response = test_client.get("/api/v1/health", headers={"X-API-Key": "test-api-key"})
