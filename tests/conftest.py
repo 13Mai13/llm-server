@@ -10,6 +10,7 @@ from pathlib import Path
 root_path = Path(__file__).parent.parent
 sys.path.insert(0, str(root_path))
 
+
 @pytest.fixture
 def test_settings():
     """Return test settings with predefined values."""
@@ -21,6 +22,7 @@ def test_settings():
         PORT=8000,
         GROQ_API_KEY="test-groq-key",
     )
+
 
 @pytest.fixture
 def test_client(test_settings):
