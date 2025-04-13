@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     REQUEST_TIMEOUT: float = 30.0
     MAX_RETRIES: int = 3
     RETRY_DELAY: float = 1.0  # seconds
+    MAX_REQUESTS_PER_MINUTE: int = 30
     
     model_config = SettingsConfigDict(
         env_file=".env",
