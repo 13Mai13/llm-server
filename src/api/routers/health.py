@@ -1,6 +1,7 @@
 from src.api.routers import api_router
 from src.api.models import HealthResponse
 
+
 @api_router.get(
     "/health",
     response_model=HealthResponse,

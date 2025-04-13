@@ -1,11 +1,10 @@
 import uvicorn
-from fastapi import FastAPI, HTTPException
-import httpx
-import os
+from fastapi import FastAPI
 from src.api.routers import health
 from src.config import get_settings
 
 settings = get_settings()
+
 
 def create_app() -> FastAPI:
     """
@@ -17,10 +16,11 @@ def create_app() -> FastAPI:
         version="0.1.0",
         # lifespan=lifespan, #TODO: Set lifespan
     )
-    
+
     app.include_router(health.api_router)
-    
+
     return app
+
 
 app = create_app()
 
@@ -32,7 +32,7 @@ app = create_app()
 #     """
 #     if not groq_api_key:
 #         raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
-    
+
 #     async with httpx.AsyncClient() as client:
 #         try:
 #             response = await client.post(
@@ -49,9 +49,9 @@ app = create_app()
 #             )
 #             response.raise_for_status()
 #             data = response.json()
-            
+
 #             return data
-        
+
 #         except httpx.HTTPStatusError as e:
 #             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
 #         except Exception as e:
