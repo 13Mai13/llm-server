@@ -14,11 +14,11 @@ async def list_models() -> ModelsResponse:
     """
     List available language models across all providers.
     """
-    providers = get_llm_providers() # TODO: Implement this
+    providers = get_llm_providers()  # TODO: Implement this
     models: List[ModelInfo] = []
-    
+
     for provider in providers.values():
         provider_models = await provider.list_models()
         models.extend(provider_models)
-    
+
     return ModelsResponse(models=models)

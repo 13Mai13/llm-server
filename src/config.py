@@ -21,17 +21,17 @@ class Settings(BaseSettings):
 
     # LLM Provider settings
     GROQ_API_KEY: Optional[str] = None
-    
+
     # Connection pool settings
-    CONNECTION_TIMEOUT: float = 10.0 
-    KEEPALIVE_TIMEOUT: float = 60.0  
-    MAX_CONNECTIONS: int = 10  
-    
+    CONNECTION_TIMEOUT: float = 10.0
+    KEEPALIVE_TIMEOUT: float = 60.0
+    MAX_CONNECTIONS: int = 10
+
     # Timeouts and retry settings
-    REQUEST_TIMEOUT: float = 30.0 
-    CONNECT_TIMEOUT: float = 5.0 
-    READ_TIMEOUT: float = 30.0 
-    
+    REQUEST_TIMEOUT: float = 30.0
+    CONNECT_TIMEOUT: float = 5.0
+    READ_TIMEOUT: float = 30.0
+
     # Rate limiting and retry mechanism
     MAX_REQUESTS_PER_MINUTE: int = 30
     MAX_RETRIES: int = 3
@@ -53,9 +53,7 @@ class Settings(BaseSettings):
     CIRCUIT_BREAKER_RECOVERY_TIME: float = 30.0  # seconds
 
     model_config = SettingsConfigDict(
-        env_file=".env", 
-        env_file_encoding="utf-8", 
-        case_sensitive=True
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=True
     )
 
     def get_model_for_provider(self, provider: Optional[str] = None) -> str:

@@ -1,4 +1,3 @@
-
 import logging
 import asyncio
 from abc import ABC, abstractmethod
@@ -9,12 +8,12 @@ from src.config import settings
 from src.api.models import ModelInfo, UsageInfo
 
 
-logger = logging.getLogger(__name__) #TODO: Check logger
+logger = logging.getLogger(__name__)  # TODO: Check logger
 
 
 class LLMResponse:
     """Response from an LLM provider."""
-    
+
     def __init__(
         self,
         id: str,
@@ -32,21 +31,21 @@ class LLMResponse:
 
 class LLMProvider(ABC):
     """Abstract base class for LLM providers."""
-    
+
     def __init__(self, name: str):
         self.name = name
         self.client = None
-    
+
     @abstractmethod
     async def initialize(self) -> None:
         """Initialize the provider client."""
         pass
-    
+
     @abstractmethod
     async def list_models(self) -> List[ModelInfo]:
         """List available models for this provider."""
         pass
-    
+
     @abstractmethod
     async def generate(
         self,
@@ -63,19 +62,19 @@ class LLMProvider(ABC):
 
 class GroqAPIProvider(LLMProvider):
     """Provider for Groq API."""
-    
+
     def __init__(self):
         super().__init__("groq")
         self.api_key = settings.GROQ_API_KEY
         self.base_url = "https://api.groq.com/openai/v1/"
         self.client = None
-        
+
         # Model capabilities (simplified)
         self.model_info = {
             "llama3-8b-8192": {
-            "context_window": 8192,
-            "supports_structured_output": True,
-            "max_output_tokens": 8192,
+                "context_window": 8192,
+                "supports_structured_output": True,
+                "max_output_tokens": 8192,
             },
             "mixtral-8x7b-32768": {
                 "context_window": 32768,
@@ -83,17 +82,17 @@ class GroqAPIProvider(LLMProvider):
                 "max_output_tokens": 32768,
             },
             "gemma2-9b-it": {
-        "context_window": 8192,
-        "supports_structured_output": True,
-        "max_output_tokens": 8192,
-    },
-    "deepseek-r1-distill-llama-70b": {
-        "context_window": 131072,
-        "supports_structured_output": True,
-        "max_output_tokens": 131072,
-    },
+                "context_window": 8192,
+                "supports_structured_output": True,
+                "max_output_tokens": 8192,
+            },
+            "deepseek-r1-distill-llama-70b": {
+                "context_window": 131072,
+                "supports_structured_output": True,
+                "max_output_tokens": 131072,
+            },
         }
-    
+
     async def initialize(self) -> None:
         """Initialize the Groq client."""
         self.client = httpx.AsyncClient(
@@ -102,11 +101,11 @@ class GroqAPIProvider(LLMProvider):
             timeout=httpx.Timeout(60.0),
         )
         logger.info("Groq provider initialized")
-    
+
     async def list_models(self) -> List[ModelInfo]:
         """List available Groq models."""
         models = []
-        
+
         for model_id, info in self.model_info.items():
             models.append(
                 ModelInfo(
@@ -118,9 +117,9 @@ class GroqAPIProvider(LLMProvider):
                     max_output_tokens=info["max_output_tokens"],
                 )
             )
-        
+
         return models
-    
+
     async def generate(
         self,
         model: str,
@@ -178,12 +177,15 @@ class GroqAPIProvider(LLMProvider):
 
         except httpx.HTTPStatusError as e:
             logger.error(f"Groq API HTTP error: {e.response.text}")
-            raise ValueError(f"Groq API error: {e.response.status_code} - {e.response.text}")
+            raise ValueError(
+                f"Groq API error: {e.response.status_code} - {e.response.text}"
+            )
 
         except Exception as e:
             logger.error(f"Unexpected error generating from Groq: {str(e)}")
             raise ValueError(f"Error generating from Groq: {str(e)}")
-    
+
+
 # Provider registry
 _providers: Dict[str, LLMProvider] = {}
 
@@ -191,7 +193,7 @@ _providers: Dict[str, LLMProvider] = {}
 def register_provider(provider: LLMProvider) -> None:
     """
     Register an LLM provider.
-    
+
     Args:
         provider: The provider to register
     """
@@ -202,7 +204,7 @@ def register_provider(provider: LLMProvider) -> None:
 def get_llm_providers() -> Dict[str, LLMProvider]:
     """
     Get all registered LLM providers.
-    
+
     Returns:
         Dict[str, LLMProvider]: Dictionary of provider name to provider instance
     """
@@ -213,7 +215,6 @@ async def initialize_providers() -> None:
     """Initialize all registered providers."""
     for provider in _providers.values():
         await provider.initialize()
-
 
 
 if settings.GROQ_API_KEY:

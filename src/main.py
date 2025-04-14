@@ -7,6 +7,7 @@ settings = get_settings()
 
 # TODO: Set configs better
 
+
 def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application.
