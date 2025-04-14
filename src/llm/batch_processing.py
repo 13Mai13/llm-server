@@ -13,7 +13,6 @@ from dataclasses import dataclass
 import time
 
 
-
 logger = logging.getLogger(__name__)
 
 # Generic type for request and response

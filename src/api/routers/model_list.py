@@ -4,6 +4,7 @@ from src.api.routers import api_router
 from src.api.models import ModelsResponse, ModelInfo
 from llm.providers import get_llm_providers
 
+
 @api_router.get(
     "/models",
     response_model=ModelsResponse,
