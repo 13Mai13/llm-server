@@ -23,3 +23,9 @@ class ModelInfo(BaseModel):
 class ModelsResponse(BaseModel):
     """Response containing available models."""
     models: List[ModelInfo] = Field(..., description="List of available models")
+
+class UsageInfo(BaseModel):
+    """Usage information for a completion request."""
+    prompt_tokens: int = Field(..., description="Number of tokens in the prompt")
+    completion_tokens: int = Field(..., description="Number of tokens in the completion")
+    total_tokens: int = Field(..., description="Total number of tokens used")

@@ -33,8 +33,6 @@ class Settings(BaseSettings):
     DEFAULT_PROVIDER: str = "groq"
     DEFAULT_MODEL: Dict[str, str] = {
         "groq": "llama3-8b-8192",
-        "openai": "gpt-3.5-turbo",
-        "anthropic": "claude-instant-1",
     }
 
     # Request settings
