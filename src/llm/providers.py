@@ -1,6 +1,6 @@
 
 import logging
-import uuid
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Union
 import httpx
@@ -133,10 +133,10 @@ class GroqAPIProvider(LLMProvider):
         """Generate text from Groq model."""
         if not self.client:
             await self.initialize()
-        
+
         if model not in self.model_info:
             raise ValueError(f"Model '{model}' not supported by Groq provider")
-        
+
         # Prepare request payload
         payload = {
             "model": model,
@@ -144,28 +144,30 @@ class GroqAPIProvider(LLMProvider):
             "temperature": temperature,
             "top_p": top_p,
         }
-        
+
         if max_tokens:
             payload["max_tokens"] = max_tokens
-        
+
         if stop:
             payload["stop"] = stop
-        
+
         try:
             response = await self.client.post("/chat/completions", json=payload)
-            response.raise_for_status()
-            data = response.json()
-            
+            await response.raise_for_status()
+            data = await response.json()
+
+            # Validate data structure
+            if not isinstance(data, dict):
+                raise ValueError(f"Unexpected response format: {type(data)}")
+
             text = data["choices"][0]["message"]["content"]
-            
-            # Build usage info
+
             usage = UsageInfo(
                 prompt_tokens=data["usage"]["prompt_tokens"],
                 completion_tokens=data["usage"]["completion_tokens"],
                 total_tokens=data["usage"]["total_tokens"],
             )
-            
-            # Create response object
+
             return LLMResponse(
                 id=data["id"],
                 text=text,
@@ -173,16 +175,15 @@ class GroqAPIProvider(LLMProvider):
                 model=model,
                 provider=self.name,
             )
-        
+
         except httpx.HTTPStatusError as e:
-            logger.error(f"Groq API error: {e.response.text}")
+            logger.error(f"Groq API HTTP error: {e.response.text}")
             raise ValueError(f"Groq API error: {e.response.status_code} - {e.response.text}")
-        
+
         except Exception as e:
-            logger.error(f"Error generating from Groq: {str(e)}")
+            logger.error(f"Unexpected error generating from Groq: {str(e)}")
             raise ValueError(f"Error generating from Groq: {str(e)}")
-
-
+    
 # Provider registry
 _providers: Dict[str, LLMProvider] = {}
 
