@@ -1,10 +1,9 @@
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 import time
 from typing import List
 
-from src.config import settings
 from src.llm.batch_processing import BatchManager, BatchItem
 
 

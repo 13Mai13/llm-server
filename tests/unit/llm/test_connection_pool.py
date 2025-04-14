@@ -11,7 +11,6 @@ from src.llm.connection_pool import (
     close_connection_pools,
     _connection_pools,
 )
-from src.config import settings
 
 
 @pytest.fixture

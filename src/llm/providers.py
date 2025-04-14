@@ -1,7 +1,6 @@
 import logging
-import asyncio
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional
 import httpx
 
 from src.config import settings

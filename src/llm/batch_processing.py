@@ -1,9 +1,7 @@
 import logging
 import asyncio
 from typing import (
-    Dict,
     List,
-    Any,
     Optional,
     Callable,
     Awaitable,
@@ -14,7 +12,6 @@ from typing import (
 from dataclasses import dataclass
 import time
 
-from src.config import settings
 
 
 logger = logging.getLogger(__name__)
