@@ -62,10 +62,10 @@ class LLMProvider(ABC):
 
 
 class GroqAPIProvider(LLMProvider):
-    """Provider for OpenAI API."""
+    """Provider for Groq API."""
     
     def __init__(self):
-        super().__init__("openai")
+        super().__init__("groq")
         self.api_key = settings.GROQ_API_KEY
         self.base_url = "https://api.groq.com/openai/v1/"
         self.client = None
