@@ -30,7 +30,7 @@ async def groq_provider(mock_groq_settings):
 async def test_groq_provider_initialization(groq_provider):
     """Test provider initialization."""
     assert groq_provider.client is not None
-    assert groq_provider.name == "openai"
+    assert groq_provider.name == "groq"
     assert groq_provider.base_url == "https://api.groq.com/openai/v1/"
 
 
@@ -57,7 +57,7 @@ async def test_list_models(groq_provider):
     # Verify model info
     for model in models:
         assert isinstance(model, ModelInfo)
-        assert model.provider == "openai"
+        assert model.provider == "groq"
         assert model.context_window > 0
         assert model.max_output_tokens > 0
 
@@ -105,7 +105,7 @@ async def test_generate_method(groq_provider):
         assert response.id == "chatcmpl-123"
         assert response.text == "This is a test response from the Groq API."
         assert response.model == "llama3-8b-8192"
-        assert response.provider == "openai"
+        assert response.provider == "groq"
         
         # Verify usage info
         assert isinstance(response.usage, UsageInfo)
