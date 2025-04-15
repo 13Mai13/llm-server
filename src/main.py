@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from src.api.routers import health
+from src.api.routers import health, model_list
 from src.config import get_settings
 
 settings = get_settings()
@@ -20,7 +20,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.api_router)
-
+    app.include_router(model_list.api_router)
     return app
 
 
