@@ -2,6 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 import httpx
+import inspect
 
 from src.config import settings
 from src.api.models import ModelInfo, UsageInfo
@@ -151,10 +152,19 @@ class GroqAPIProvider(LLMProvider):
 
         try:
             response = await self.client.post("/chat/completions", json=payload)
-            await response.raise_for_status()
-            data = await response.json()
+            
+            # Check if raise_for_status is a coroutine function (in AsyncMock)
+            if inspect.iscoroutinefunction(response.raise_for_status):
+                await response.raise_for_status()
+            else:
+                response.raise_for_status()
+            
+            # Check if json is a coroutine function (in AsyncMock)
+            if inspect.iscoroutinefunction(response.json):
+                data = await response.json()
+            else:
+                data = response.json()
 
-            # Validate data structure
             if not isinstance(data, dict):
                 raise ValueError(f"Unexpected response format: {type(data)}")
 
