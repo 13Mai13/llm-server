@@ -76,11 +76,6 @@ class GroqAPIProvider(LLMProvider):
                 "supports_structured_output": True,
                 "max_output_tokens": 8192,
             },
-            "mixtral-8x7b-32768": {
-                "context_window": 32768,
-                "supports_structured_output": True,
-                "max_output_tokens": 32768,
-            },
             "gemma2-9b-it": {
                 "context_window": 8192,
                 "supports_structured_output": True,

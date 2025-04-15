@@ -1,6 +1,6 @@
 import time
-
-# import logging
+import logging
+import uuid
 from typing import Callable, Dict
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
@@ -8,6 +8,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 from src.config import settings
+from src.monitoring.metrics import increment_request_count, increment_error_count
+from src.monitoring.logger import get_request_logger, log_request
+
+logger = logging.getLogger(__name__)
+
 # TODO: Add logging and monitoring here
 
 
@@ -92,27 +97,77 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """
-    Middleware for logging requests and responses.
+    Middleware for logging requests and responses with metrics and tracing.
     """
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        """Log request and response details."""
-        # start_time = time.time()
+        """Log request and response details with metrics and tracing."""
+        start_time = time.time()
+        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
 
         # Extract request details
-        # method = request.method
-        # path = request.url.path
-        # query = request.url.query.decode() if request.url.query else ""
-        # client_ip = request.client.host if request.client else "unknown"
+        method = request.method
+        path = request.url.path
+        query = request.url.query.decode() if request.url.query else ""
+        client_ip = request.client.host if request.client else "unknown"
 
-        # Log request
-        # logger.info(f"Request: {method} {path}{'?' + query if query else ''} from {client_ip}")
+        # Get request logger with context
+        request_logger = get_request_logger(request_id)
+        request_logger.info(
+            f"Request started: {method} {path}{'?' + query if query else ''} from {client_ip}",
+            extra={
+                "method": method,
+                "path": path,
+                "query": query,
+                "client_ip": client_ip,
+                "request_id": request_id,
+            },
+        )
 
         try:
             response = await call_next(request)
+            duration = time.time() - start_time
+
+            # Log successful request
+            log_request(method, path, response.status_code, duration, request_id)
+
+            # Record metrics
+            increment_request_count(
+                method=method,
+                path=path,
+                status_code=response.status_code,
+                duration=duration,
+            )
+
+            # Add request ID to response headers
+            response.headers["X-Request-ID"] = request_id
             return response
-        except Exception:
-            # Log exception
+
+        except Exception as e:
+            duration = time.time() - start_time
+            error_type = type(e).__name__
+
+            # Log error
+            request_logger.error(
+                f"Request failed: {method} {path} - {error_type}",
+                exc_info=True,
+                extra={
+                    "method": method,
+                    "path": path,
+                    "error_type": error_type,
+                    "duration": duration,
+                },
+            )
+
+            # Record error metrics
+            increment_error_count(error_type)
+            increment_request_count(
+                method=method,
+                path=path,
+                status_code=500,  # Internal Server Error
+                duration=duration,
+            )
+
             raise
 
 
