@@ -46,8 +46,8 @@ class CompletionRequest(BaseModel):
     model: str = Field(..., description="Model identifier")
     prompt: str = Field(..., description="The prompt to generate completion for")
     max_tokens: Optional[int] = Field(None, description="Maximum number of tokens to generate")
-    temperature: Optional[float] = Field(0.7, description="Sampling temperature (0.0 to 1.0)")
-    top_p: Optional[float] = Field(1.0, description="Nucleus sampling parameter")
+    temperature: Optional[float] = Field(0.7, ge=0.0, le=1.0, description="Sampling temperature (0.0 to 1.0)")
+    top_p: Optional[float] = Field(1.0, ge=0.0, le=1.0, description="Nucleus sampling parameter")
     stop: Optional[List[str]] = Field(None, description="Stop sequences")
 
 
