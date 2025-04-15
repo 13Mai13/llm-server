@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from src.api.routers import health, model_list, completions
+from src.api.routers import health, model_list, completions, metrics
 from src.config import get_settings
 
 settings = get_settings()
@@ -14,7 +14,7 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(
         title="LLM Inference Server",
-        description="High-performance LLM inference server with structured output validation",
+        description="High-performance LLM inference server with structured and unstructured output validation",
         version="0.1.0",
         # lifespan=lifespan, #TODO: Set lifespan
     )
@@ -22,6 +22,7 @@ def create_app() -> FastAPI:
     app.include_router(health.api_router)
     app.include_router(model_list.api_router)
     app.include_router(completions.api_router)
+    app.include_router(metrics.api_router)
     return app
 
 

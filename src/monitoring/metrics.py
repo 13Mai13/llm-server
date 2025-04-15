@@ -36,10 +36,6 @@ class MetricsStore:
         self.llm_requests: Dict[str, int] = {}  # by provider
         self.llm_tokens: Dict[str, int] = {}  # by provider
 
-        # Validation metrics
-        self.validation_successes = 0
-        self.validation_failures = 0
-
         # Thread safety
         self.lock = threading.Lock()
 
@@ -131,19 +127,6 @@ class MetricsStore:
                 self.llm_requests[structured_key] = (
                     self.llm_requests.get(structured_key, 0) + 1
                 )
-
-    def record_validation_result(self, success: bool) -> None:
-        """
-        Record a validation result.
-
-        Args:
-            success: Whether validation was successful
-        """
-        with self.lock:
-            if success:
-                self.validation_successes += 1
-            else:
-                self.validation_failures += 1
 
     def get_metrics(self) -> Dict[str, Any]:
         """
@@ -240,16 +223,6 @@ def record_request_metrics(
         _metrics_store.record_llm_request(provider, model, tokens, duration, structured)
 
 
-def record_validation_result(success: bool) -> None:
-    """
-    Record a validation result.
-
-    Args:
-        success: Whether validation was successful
-    """
-    _metrics_store.record_validation_result(success)
-
-
 def get_metrics() -> Dict[str, Any]:
     """
     Get all metrics.
@@ -265,20 +238,5 @@ def get_metrics() -> Dict[str, Any]:
         "llm": {
             "requests": _metrics_store.llm_requests,
             "tokens": _metrics_store.llm_tokens,
-        },
-        "validation": {
-            "successes": _metrics_store.validation_successes,
-            "failures": _metrics_store.validation_failures,
-            "success_rate": (
-                _metrics_store.validation_successes
-                / (
-                    _metrics_store.validation_successes
-                    + _metrics_store.validation_failures
-                )
-                if _metrics_store.validation_successes
-                + _metrics_store.validation_failures
-                > 0
-                else 0
-            ),
         },
     }
