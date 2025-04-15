@@ -4,10 +4,11 @@ from src.api.routers import api_router
 from src.llm.providers import get_llm_providers
 from src.monitoring.metrics import record_request_metrics
 from src.api.models import (
-    CompletionRequest, 
+    CompletionRequest,
     CompletionResponse,
     ErrorResponse,
 )
+
 
 @api_router.post(
     "/completions",
@@ -26,15 +27,15 @@ async def create_completion(request: CompletionRequest) -> CompletionResponse:
     Generate a text completion from a prompt without structured validation.
     """
     providers = get_llm_providers()
-    
+
     if request.provider not in providers:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Provider '{request.provider}' not supported",
         )
-    
+
     provider = providers[request.provider]
-    
+
     try:
         # Record metrics for the request
         with record_request_metrics(request.provider, request.model):
@@ -46,7 +47,7 @@ async def create_completion(request: CompletionRequest) -> CompletionResponse:
                 top_p=request.top_p,
                 stop=request.stop,
             )
-        
+
         return CompletionResponse(
             id=response.id,
             provider=request.provider,

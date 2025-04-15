@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, ANY
+from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 from fastapi import status
 
@@ -20,16 +20,16 @@ def mock_providers():
     provider = MagicMock(spec=LLMProvider)
     provider.name = "test_provider"
     provider.generate = AsyncMock()
-    
+
     mock_response = LLMResponse(
         id="resp-123",
         text="This is a test response",
         usage=UsageInfo(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         model="test_model",
-        provider="test_provider"
+        provider="test_provider",
     )
     provider.generate.return_value = mock_response
-    
+
     return {"test_provider": provider}
 
 
@@ -45,7 +45,9 @@ def mock_metrics():
 @pytest.mark.asyncio
 async def test_create_completion_success(client, mock_providers, mock_metrics):
     """Test successful text completion generation."""
-    with patch("src.api.routers.completions.get_llm_providers", return_value=mock_providers):
+    with patch(
+        "src.api.routers.completions.get_llm_providers", return_value=mock_providers
+    ):
         # Make the request
         response = client.post(
             "/api/v1/completions",
@@ -56,13 +58,13 @@ async def test_create_completion_success(client, mock_providers, mock_metrics):
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "max_tokens": 100,
-                "stop": ["END"]
+                "stop": ["END"],
             },
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["id"] == "resp-123"
         assert data["provider"] == "test_provider"
@@ -71,16 +73,16 @@ async def test_create_completion_success(client, mock_providers, mock_metrics):
         assert data["usage"]["prompt_tokens"] == 10
         assert data["usage"]["completion_tokens"] == 20
         assert data["usage"]["total_tokens"] == 30
-        
+
         mock_providers["test_provider"].generate.assert_called_once_with(
             model="test_model",
             prompt="Hello, world!",
             temperature=0.7,
             top_p=0.9,
             max_tokens=100,
-            stop=["END"]
+            stop=["END"],
         )
-        
+
         mock_metrics.assert_called_once_with("test_provider", "test_model")
 
 
@@ -93,13 +95,13 @@ async def test_create_completion_unsupported_provider(client):
             json={
                 "provider": "nonexistent_provider",
                 "model": "test_model",
-                "prompt": "Hello, world!"
+                "prompt": "Hello, world!",
             },
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
-        
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        
+
         data = response.json()
         assert "detail" in data
         assert "not supported" in data["detail"]
@@ -110,26 +112,28 @@ async def test_create_completion_unsupported_provider(client):
 async def test_create_completion_provider_error(client, mock_providers, mock_metrics):
     """Test error handling when the provider raises an exception."""
     mock_providers["test_provider"].generate.side_effect = ValueError("Model error")
-    
-    with patch("src.api.routers.completions.get_llm_providers", return_value=mock_providers):
+
+    with patch(
+        "src.api.routers.completions.get_llm_providers", return_value=mock_providers
+    ):
         response = client.post(
             "/api/v1/completions",
             json={
                 "provider": "test_provider",
                 "model": "test_model",
-                "prompt": "Hello, world!"
+                "prompt": "Hello, world!",
             },
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
-        
+
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        
+
         data = response.json()
         assert "detail" in data
         assert "Model error" in data["detail"]
-        
+
         mock_providers["test_provider"].generate.assert_called_once()
-        
+
         mock_metrics.assert_called_once()
 
 
@@ -142,11 +146,11 @@ async def test_create_completion_missing_required_fields(client):
             "provider": "test_provider"
             # Missing model and prompt
         },
-        headers={"X-API-Key": "test-api-key"}
+        headers={"X-API-Key": "test-api-key"},
     )
-    
+
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    
+
     data = response.json()
     assert "detail" in data
     errors = {error["loc"][-1]: error["msg"] for error in data["detail"]}
@@ -157,7 +161,9 @@ async def test_create_completion_missing_required_fields(client):
 @pytest.mark.asyncio
 async def test_create_completion_invalid_parameters(client, mock_providers):
     """Test validation for invalid parameter values."""
-    with patch("src.api.routers.completions.get_llm_providers", return_value=mock_providers):
+    with patch(
+        "src.api.routers.completions.get_llm_providers", return_value=mock_providers
+    ):
         response = client.post(
             "/api/v1/completions",
             json={
@@ -165,9 +171,9 @@ async def test_create_completion_invalid_parameters(client, mock_providers):
                 "model": "test_model",
                 "prompt": "Hello, world!",
                 "temperature": 2.0,  # Invalid: should be between 0 and 1
-                "top_p": -0.5        # Invalid: should be between 0 and 1
+                "top_p": -0.5,  # Invalid: should be between 0 and 1
             },
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
 
         data = response.json()
@@ -184,8 +190,8 @@ async def test_create_completion_unauthorized(client):
         json={
             "provider": "test_provider",
             "model": "test_model",
-            "prompt": "Hello, world!"
-        }
+            "prompt": "Hello, world!",
+        },
         # No API key header
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

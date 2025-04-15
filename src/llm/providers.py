@@ -152,13 +152,13 @@ class GroqAPIProvider(LLMProvider):
 
         try:
             response = await self.client.post("/chat/completions", json=payload)
-            
+
             # Check if raise_for_status is a coroutine function (in AsyncMock)
             if inspect.iscoroutinefunction(response.raise_for_status):
                 await response.raise_for_status()
             else:
                 response.raise_for_status()
-            
+
             # Check if json is a coroutine function (in AsyncMock)
             if inspect.iscoroutinefunction(response.json):
                 data = await response.json()
