@@ -45,7 +45,6 @@ async def test_list_models(groq_provider):
     model_ids = [model.id for model in models]
     expected_models = [
         "llama3-8b-8192",
-        "mixtral-8x7b-32768",
         "gemma2-9b-it",
         "deepseek-r1-distill-llama-70b",
     ]
