@@ -1,14 +1,15 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Request
 from src.api.routers import api_router
-
 from src.llm.providers import get_llm_providers
-from src.monitoring.metrics import record_request_metrics
+from src.monitoring.metrics import record_request_metrics, increment_error_count
+from src.monitoring.logger import get_request_logger
 from src.api.models import (
     CompletionRequest,
     CompletionResponse,
     ErrorResponse,
 )
 
+logger = get_request_logger()
 
 @api_router.post(
     "/completions",
@@ -22,21 +23,37 @@ from src.api.models import (
         500: {"model": ErrorResponse, "description": "Internal server error"},
     },
 )
-async def create_completion(request: CompletionRequest) -> CompletionResponse:
+async def create_completion(request: CompletionRequest, fastapi_request: Request) -> CompletionResponse:
     """
     Generate a text completion from a prompt without structured validation.
     """
+    request_id = fastapi_request.headers.get("X-Request-ID", "unknown")
+    logger = get_request_logger(request_id)
+    
     providers = get_llm_providers()
 
     if request.provider not in providers:
+        error_msg = f"Provider '{request.provider}' not supported"
+        logger.warning(error_msg)
+        increment_error_count("unsupported_provider")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Provider '{request.provider}' not supported",
+            detail=error_msg,
         )
 
     provider = providers[request.provider]
 
     try:
+        logger.info(
+            f"Generating completion with provider {request.provider} and model {request.model}",
+            extra={
+                "provider": request.provider,
+                "model": request.model,
+                "max_tokens": request.max_tokens,
+                "temperature": request.temperature,
+            },
+        )
+
         # Record metrics for the request
         with record_request_metrics(request.provider, request.model):
             response = await provider.generate(
@@ -48,6 +65,15 @@ async def create_completion(request: CompletionRequest) -> CompletionResponse:
                 stop=request.stop,
             )
 
+        logger.info(
+            f"Successfully generated completion with {response.usage.total_tokens} tokens",
+            extra={
+                "provider": request.provider,
+                "model": request.model,
+                "total_tokens": response.usage.total_tokens,
+            },
+        )
+
         return CompletionResponse(
             id=response.id,
             provider=request.provider,
@@ -56,6 +82,17 @@ async def create_completion(request: CompletionRequest) -> CompletionResponse:
             usage=response.usage,
         )
     except Exception as e:
+        error_type = type(e).__name__
+        logger.error(
+            f"Failed to generate completion: {str(e)}",
+            exc_info=True,
+            extra={
+                "provider": request.provider,
+                "model": request.model,
+                "error_type": error_type,
+            },
+        )
+        increment_error_count(error_type)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
