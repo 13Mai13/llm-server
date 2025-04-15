@@ -2,7 +2,7 @@ from typing import List
 
 from src.api.routers import api_router
 from src.api.models import ModelsResponse, ModelInfo
-from llm.providers import get_llm_providers
+from src.llm.providers import get_llm_providers
 
 
 @api_router.get(
@@ -15,7 +15,7 @@ async def list_models() -> ModelsResponse:
     """
     List available language models across all providers.
     """
-    providers = get_llm_providers()  # TODO: Implement this
+    providers = get_llm_providers()
     models: List[ModelInfo] = []
 
     for provider in providers.values():
