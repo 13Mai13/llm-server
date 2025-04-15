@@ -11,6 +11,7 @@ from src.api.models import (
 
 logger = get_request_logger()
 
+
 @api_router.post(
     "/completions",
     response_model=CompletionResponse,
@@ -23,13 +24,15 @@ logger = get_request_logger()
         500: {"model": ErrorResponse, "description": "Internal server error"},
     },
 )
-async def create_completion(request: CompletionRequest, fastapi_request: Request) -> CompletionResponse:
+async def create_completion(
+    request: CompletionRequest, fastapi_request: Request
+) -> CompletionResponse:
     """
     Generate a text completion from a prompt without structured validation.
     """
     request_id = fastapi_request.headers.get("X-Request-ID", "unknown")
     logger = get_request_logger(request_id)
-    
+
     providers = get_llm_providers()
 
     if request.provider not in providers:

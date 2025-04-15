@@ -1,5 +1,9 @@
-from fastapi import APIRouter, Request, HTTPException
-from src.monitoring.metrics import get_metrics, increment_request_count, increment_error_count
+from fastapi import Request, HTTPException
+from src.monitoring.metrics import (
+    get_metrics,
+    increment_request_count,
+    increment_error_count,
+)
 from src.monitoring.logger import get_request_logger
 from src.api.routers import api_router
 
@@ -16,7 +20,7 @@ async def get_metrics_endpoint(fastapi_request: Request):
     """
     request_id = fastapi_request.headers.get("X-Request-ID", "unknown")
     logger = get_request_logger(request_id)
-    
+
     try:
         logger.info("Metrics requested")
         metrics = get_metrics()
@@ -32,6 +36,5 @@ async def get_metrics_endpoint(fastapi_request: Request):
         increment_error_count(error_type)
         increment_request_count(method="GET", path="/metrics", status_code=500)
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to retrieve metrics: {str(e)}"
-        ) 
+            status_code=500, detail=f"Failed to retrieve metrics: {str(e)}"
+        )

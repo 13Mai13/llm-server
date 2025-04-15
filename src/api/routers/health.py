@@ -6,6 +6,7 @@ from src.monitoring.logger import get_request_logger
 
 logger = get_request_logger()
 
+
 @api_router.get(
     "/health",
     response_model=HealthResponse,
@@ -18,11 +19,11 @@ async def health_check(fastapi_request: Request) -> HealthResponse:
     """
     request_id = fastapi_request.headers.get("X-Request-ID", "unknown")
     logger = get_request_logger(request_id)
-    
+
     try:
         logger.info("Health check requested")
         increment_request_count(method="GET", path="/health", status_code=200)
-        
+
         return HealthResponse(status=200, description="ok", version="0.1.0")
     except Exception as e:
         error_type = type(e).__name__

@@ -3,10 +3,11 @@ from fastapi import Request
 from src.api.routers import api_router
 from src.api.models import ModelsResponse, ModelInfo
 from src.llm.providers import get_llm_providers
-from src.monitoring.metrics import increment_request_count, increment_error_count
+from src.monitoring.metrics import increment_error_count
 from src.monitoring.logger import get_request_logger
 
 logger = get_request_logger()
+
 
 @api_router.get(
     "/models",
@@ -20,10 +21,10 @@ async def list_models(fastapi_request: Request) -> ModelsResponse:
     """
     request_id = fastapi_request.headers.get("X-Request-ID", "unknown")
     logger = get_request_logger(request_id)
-    
+
     try:
         logger.info("Fetching available models from all providers")
-        
+
         providers = get_llm_providers()
         models: List[ModelInfo] = []
 
