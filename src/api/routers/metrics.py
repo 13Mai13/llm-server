@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException
 from src.monitoring.metrics import (
-    get_metrics,
+    get_metrics_store,
     increment_request_count,
     increment_error_count,
 )
@@ -23,7 +23,7 @@ async def get_metrics_endpoint(fastapi_request: Request):
 
     try:
         logger.info("Metrics requested")
-        metrics = get_metrics()
+        metrics = get_metrics_store().get_metrics()
         increment_request_count(method="GET", path="/metrics", status_code=200)
         return metrics
     except Exception as e:
