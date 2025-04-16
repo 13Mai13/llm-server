@@ -6,7 +6,6 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime
 import statistics
-from bisect import insort
 
 
 logger = logging.getLogger(__name__)
@@ -15,6 +14,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LLMRequestMetrics:
     """Detailed metrics for a single LLM request."""
+
     provider: str
     model: str
     input_tokens: int
@@ -54,14 +54,16 @@ class MetricsStore:
         self.llm_tokens_input: Dict[str, int] = {}  # by provider/model
         self.llm_tokens_output: Dict[str, int] = {}  # by provider/model
         self.llm_costs: Dict[str, float] = {}  # by provider/model
-        
+
         # Timing metrics
         self.llm_durations: Dict[str, List[float]] = {}  # by provider/model
         self.llm_time_to_first_token: Dict[str, List[float]] = {}  # by provider/model
         self.llm_time_per_token: Dict[str, List[float]] = {}  # by provider/model
-        
+
         # Error tracking
-        self.llm_errors: Dict[str, Dict[str, int]] = {}  # by provider/model -> error type
+        self.llm_errors: Dict[
+            str, Dict[str, int]
+        ] = {}  # by provider/model -> error type
         self.llm_rate_limits: Dict[str, int] = {}  # by provider/model
         self.llm_structured_success: Dict[str, int] = {}  # by provider/model
         self.llm_structured_failures: Dict[str, int] = {}  # by provider/model
@@ -82,14 +84,14 @@ class MetricsStore:
         """Calculate P50, P90, P95, P99 percentiles for a list of values."""
         if not values:
             return {}
-        
+
         sorted_values = sorted(values)
         n = len(sorted_values)
-        
+
         def get_percentile(p: float) -> float:
             index = int(p * n)
             return sorted_values[index]
-        
+
         return {
             "p50": get_percentile(0.5),
             "p90": get_percentile(0.9),
@@ -200,10 +202,12 @@ class MetricsStore:
                 self.llm_tokens_output.get(model_key, 0) + output_tokens
             )
             self.llm_costs[model_key] = self.llm_costs.get(model_key, 0.0) + cost
-            
+
             # Track timing metrics
             self.llm_durations.setdefault(model_key, []).append(duration)
-            self.llm_time_to_first_token.setdefault(model_key, []).append(time_to_first_token)
+            self.llm_time_to_first_token.setdefault(model_key, []).append(
+                time_to_first_token
+            )
             self.llm_time_per_token.setdefault(model_key, []).append(time_per_token)
 
             # Track structured requests
@@ -262,7 +266,9 @@ class MetricsStore:
         with self.lock:
             self.batch_sizes.append(batch_size)
             self.batch_durations.append(duration)
-            self.batch_success_rate = success_count / total_count if total_count > 0 else 0.0
+            self.batch_success_rate = (
+                success_count / total_count if total_count > 0 else 0.0
+            )
 
     def record_rate_limit(self, provider: str, model: str) -> None:
         """
@@ -316,20 +322,42 @@ class MetricsStore:
                             "cost": self.llm_costs.get(model, 0.0),
                             "timing": {
                                 "total": {
-                                    "average": statistics.mean(self.llm_durations.get(model, [])) if self.llm_durations.get(model) else 0,
-                                    "percentiles": self._calculate_percentiles(self.llm_durations.get(model, [])),
+                                    "average": statistics.mean(
+                                        self.llm_durations.get(model, [])
+                                    )
+                                    if self.llm_durations.get(model)
+                                    else 0,
+                                    "percentiles": self._calculate_percentiles(
+                                        self.llm_durations.get(model, [])
+                                    ),
                                 },
                                 "time_to_first_token": {
-                                    "average": statistics.mean(self.llm_time_to_first_token.get(model, [])) if self.llm_time_to_first_token.get(model) else 0,
-                                    "percentiles": self._calculate_percentiles(self.llm_time_to_first_token.get(model, [])),
+                                    "average": statistics.mean(
+                                        self.llm_time_to_first_token.get(model, [])
+                                    )
+                                    if self.llm_time_to_first_token.get(model)
+                                    else 0,
+                                    "percentiles": self._calculate_percentiles(
+                                        self.llm_time_to_first_token.get(model, [])
+                                    ),
                                 },
                                 "time_per_token": {
-                                    "average": statistics.mean(self.llm_time_per_token.get(model, [])) if self.llm_time_per_token.get(model) else 0,
-                                    "percentiles": self._calculate_percentiles(self.llm_time_per_token.get(model, [])),
+                                    "average": statistics.mean(
+                                        self.llm_time_per_token.get(model, [])
+                                    )
+                                    if self.llm_time_per_token.get(model)
+                                    else 0,
+                                    "percentiles": self._calculate_percentiles(
+                                        self.llm_time_per_token.get(model, [])
+                                    ),
                                 },
                             },
-                            "structured_success": self.llm_structured_success.get(model, 0),
-                            "structured_failures": self.llm_structured_failures.get(model, 0),
+                            "structured_success": self.llm_structured_success.get(
+                                model, 0
+                            ),
+                            "structured_failures": self.llm_structured_failures.get(
+                                model, 0
+                            ),
                             "errors": self.llm_errors.get(model, {}),
                             "rate_limits": self.llm_rate_limits.get(model, 0),
                         }
@@ -432,7 +460,7 @@ def record_request_metrics(
         duration = time.time() - start_time
         time_to_first_token = first_token_time - start_time if first_token_time else 0
         time_per_token = duration / output_tokens if output_tokens > 0 else 0
-        
+
         _metrics_store.record_llm_request(
             provider=provider,
             model=model,
@@ -463,7 +491,9 @@ def record_batch_metrics(
         success_count: Number of successful requests
         total_count: Total number of requests
     """
-    _metrics_store.record_batch_metrics(batch_size, duration, success_count, total_count)
+    _metrics_store.record_batch_metrics(
+        batch_size, duration, success_count, total_count
+    )
 
 
 def record_rate_limit(provider: str, model: str) -> None:
