@@ -118,8 +118,9 @@ graph TD
 ### Prerequisites
 - Python 3.12+
 - UV for dependency management
+- Docker (optional)
 
-### Installation
+### Local Installation
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/llm-server.git
@@ -133,6 +134,15 @@ uv sync
 
 # Run the server
 uvicorn src.main:app --reload
+```
+
+### Docker Installation
+```bash
+# Build the Docker image
+docker build -t llm-server .
+
+# Run the container
+docker run -p 8000:8000 --env-file .env llm-server
 ```
 
 ### Configuration
