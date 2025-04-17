@@ -13,26 +13,19 @@ RUN apt-get update && apt-get install -y \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv ~/.local/bin/uv /usr/local/bin/uv
 
-# Copy project files
-COPY . .
+# Copy only the necessary files first
+COPY pyproject.toml .
+COPY src/ src/
 
 # Install Python dependencies
 RUN uv sync
 
-# Expose the port the app runs on
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Expose port
 EXPOSE 8000
 
-# Create a startup script
-RUN echo '#!/bin/sh\n\
-echo "Checking environment variables..."\n\
-if [ -z "$API_KEY" ]; then\n\
-    echo "Error: API_KEY is not set"\n\
-    exit 1\n\
-else\n\
-    echo "API_KEY is set"\n\
-fi\n\
-exec /app/.venv/bin/python -m uvicorn src.main:app --host 0.0.0.0 --port 8000' > /app/start.sh && \
-    chmod +x /app/start.sh
-
-# Command to run the application
-CMD ["/app/start.sh"] 
+# Run the application
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"] 
