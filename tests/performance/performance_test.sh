@@ -54,25 +54,34 @@ echo "=== Summary of Results ===" >> "$RESULTS_FILE"
 echo "Test Type,Scenario,Threads,Connections,Duration,Requests/sec,Latency(avg),Latency(p95),Latency(p99)" >> "$RESULTS_FILE"
 
 # Process each scenario's results
-grep -A 1 "Scenario:" "$RESULTS_FILE" | while read -r line; do
-    if [[ $line == *"Scenario:"* ]]; then
-        scenario=$(echo "$line" | cut -d':' -f2 | xargs)
-        test_type=$(grep -B 2 "$scenario" "$RESULTS_FILE" | grep "Starting" | cut -d' ' -f3 | tr -d '=')
-        description=$(grep -A 1 "$scenario" "$RESULTS_FILE" | grep "Description:" | cut -d':' -f2 | xargs)
-        threads=$(grep -A 1 "$scenario" "$RESULTS_FILE" | grep "Threads=" | awk -F'Threads=' '{print $2}' | cut -d',' -f1)
-        connections=$(grep -A 1 "$scenario" "$RESULTS_FILE" | grep "Connections=" | awk -F'Connections=' '{print $2}' | cut -d',' -f1)
-        duration=$(grep -A 1 "$scenario" "$RESULTS_FILE" | grep "Duration=" | awk -F'Duration=' '{print $2}' | cut -d's' -f1)
+while IFS= read -r line; do
+    if [[ $line == *"=== Scenario:"* ]]; then
+        # Extract scenario name
+        scenario=$(echo "$line" | sed 's/=== Scenario: //' | sed 's/ ===//')
         
-        # Extract throughput (Requests/sec)
-        requests=$(grep -A 10 "$scenario" "$RESULTS_FILE" | grep "Requests/sec" | awk '{print $2}' | tr -d ',')
-        # Extract latency metrics
-        latency_avg=$(grep -A 10 "$scenario" "$RESULTS_FILE" | grep "Latency" | awk '{print $2}' | tr -d ',')
-        latency_p95=$(grep -A 10 "$scenario" "$RESULTS_FILE" | grep "Latency" | awk '{print $3}' | tr -d ',')
-        latency_p99=$(grep -A 10 "$scenario" "$RESULTS_FILE" | grep "Latency" | awk '{print $4}' | tr -d ',')
+        # Get test type
+        test_type=$(grep -B 2 "$scenario" "$RESULTS_FILE" | grep "Starting" | sed 's/=== Starting //' | sed 's/ ===//')
+        
+        # Get configuration
+        config_line=$(grep -A 1 "$scenario" "$RESULTS_FILE" | grep "Configuration:")
+        threads=$(echo "$config_line" | grep -o "Threads=[0-9]*" | cut -d'=' -f2)
+        connections=$(echo "$config_line" | grep -o "Connections=[0-9]*" | cut -d'=' -f2)
+        duration=$(echo "$config_line" | grep -o "Duration=[0-9]*" | cut -d'=' -f2)
+        
+        # Get metrics section
+        metrics_start=$(grep -n "$scenario" "$RESULTS_FILE" | cut -d: -f1)
+        metrics_end=$(grep -n -m 1 "^$" "$RESULTS_FILE" | cut -d: -f1)
+        metrics_section=$(sed -n "${metrics_start},${metrics_end}p" "$RESULTS_FILE")
+        
+        # Extract metrics
+        requests=$(echo "$metrics_section" | grep "Requests/sec" | awk '{print $2}')
+        latency_avg=$(echo "$metrics_section" | grep "Latency" | head -n1 | awk '{print $2}')
+        latency_p95=$(echo "$metrics_section" | grep "90.000%" | awk '{print $2}')
+        latency_p99=$(echo "$metrics_section" | grep "99.000%" | awk '{print $2}')
         
         # Write to summary
-        echo "$test_type,$scenario,$threads,$connections,$duration,$requests,$latency_avg,$latency_p95,$latency_p99" >> "$RESULTS_FILE"
+        echo "$test_type,$scenario,$threads,$connections,${duration}s,$requests,$latency_avg,$latency_p95,$latency_p99" >> "$RESULTS_FILE"
     fi
-done
+done < "$RESULTS_FILE"
 
 echo "Results saved to $RESULTS_FILE"
