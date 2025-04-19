@@ -1,6 +1,13 @@
 import uvicorn
 from fastapi import FastAPI
-from src.api.routers import health, model_list, completions, metrics, schema_registry, structured_completions
+from src.api.routers import (
+    health,
+    model_list,
+    completions,
+    metrics,
+    schema_registry,
+    structured_completions,
+)
 from src.config import get_settings
 
 settings = get_settings()
@@ -24,7 +31,7 @@ def create_app() -> FastAPI:
     app.include_router(completions.api_router)
     app.include_router(metrics.api_router)
     app.include_router(schema_registry.api_router)
-    app.include_router(structured_completions.api_router)   
+    app.include_router(structured_completions.api_router)
     return app
 
 

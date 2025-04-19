@@ -74,27 +74,34 @@ class ErrorResponse(BaseModel):
 
     detail: str = Field(..., description="Error message")
 
+
 class SchemaDefinition(BaseModel):
     """Definition of a schema for structured output validation."""
+
     id: Optional[str] = Field(None, description="Schema identifier")
     name: str = Field(..., description="Schema name")
     description: Optional[str] = Field(None, description="Schema description")
-    schema: Dict[str, Any] = Field(..., description="JSON schema")
+    json_schema: Dict[str, Any] = Field(..., description="JSON schema")
     created_at: Optional[str] = Field(None, description="Creation timestamp")
     updated_at: Optional[str] = Field(None, description="Last update timestamp")
 
+
 class TransformerDefinition(BaseModel):
     """Definition of a transformer for post-processing."""
+
     name: str = Field(..., description="Transformer name")
-    config: Optional[Dict[str, Any]] = Field(None, description="Transformer configuration")
+    config: Optional[Dict[str, Any]] = Field(
+        None, description="Transformer configuration"
+    )
 
 
 class StructuredCompletionRequest(CompletionRequest):
     """Request for structured completion."""
+
     schema_id: Optional[str] = Field(
         None, description="ID of a registered schema to use for validation"
     )
-    schema: Optional[Dict[str, Any]] = Field(
+    validation_schema: Optional[Dict[str, Any]] = Field(
         None, description="Inline schema to use for validation"
     )
     transformers: Optional[List[TransformerDefinition]] = Field(
@@ -104,6 +111,7 @@ class StructuredCompletionRequest(CompletionRequest):
 
 class StructuredCompletionResponse(BaseModel):
     """Response for structured completion."""
+
     id: str = Field(..., description="Unique identifier for this completion")
     provider: str = Field(..., description="LLM provider used")
     model: str = Field(..., description="Model identifier used")
