@@ -58,15 +58,34 @@ async def create_completion(
         )
 
         # Record metrics for the request
-        with record_request_metrics(request.provider, request.model):
-            response = await provider.generate(
-                model=request.model,
-                prompt=request.prompt,
-                max_tokens=request.max_tokens,
-                temperature=request.temperature,
-                top_p=request.top_p,
-                stop=request.stop,
-            )
+        # with record_request_metrics(request.provider, request.model):
+        #     response = await provider.generate(
+        #         model=request.model,
+        #         prompt=request.prompt,
+        #         max_tokens=request.max_tokens,
+        #         temperature=request.temperature,
+        #         top_p=request.top_p,
+        #         stop=request.stop,
+        #     )
+
+        # Generate the response first
+        response = await provider.generate(
+            model=request.model,
+            prompt=request.prompt,
+            max_tokens=request.max_tokens,
+            temperature=request.temperature,
+            top_p=request.top_p,
+            stop=request.stop,
+        )
+
+        # Record metrics for the request with actual values
+        with record_request_metrics(
+            request.provider,
+            request.model,
+            input_tokens=response.usage.prompt_tokens,
+            output_tokens=response.usage.completion_tokens,
+        ):
+            pass  # Metrics are recorded in the context manager
 
         logger.info(
             f"Successfully generated completion with {response.usage.total_tokens} tokens",

@@ -1,4 +1,5 @@
 from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
 from src.monitoring.metrics import (
     get_metrics_store,
     increment_request_count,
@@ -25,7 +26,7 @@ async def get_metrics_endpoint(fastapi_request: Request):
         logger.info("Metrics requested")
         metrics = get_metrics_store().get_metrics()
         increment_request_count(method="GET", path="/metrics", status_code=200)
-        return metrics
+        return JSONResponse(content=metrics)
     except Exception as e:
         error_type = type(e).__name__
         logger.error(
