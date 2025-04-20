@@ -54,3 +54,7 @@ MIT
 ## Deep Dive
 
 For a detailed technical analysis, architecture decisions, and performance considerations, see [DEEP_DIVE.md](docs/DEEP_DIVE.md). 
+
+## Performace test
+
+There is a section on how to run the performance test too, see [Performance_test.md](docs/performance_testing.md)
