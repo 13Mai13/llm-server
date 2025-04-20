@@ -7,6 +7,7 @@ from src.api.routers import (
     metrics,
     schema_registry,
     structured_completions,
+    outlines_models,
 )
 from src.config import get_settings
 
@@ -32,6 +33,7 @@ def create_app() -> FastAPI:
     app.include_router(metrics.api_router)
     app.include_router(schema_registry.api_router)
     app.include_router(structured_completions.api_router)
+    app.include_router(outlines_models.api_router)
     return app
 
 
