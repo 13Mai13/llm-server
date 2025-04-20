@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from fastapi import status
 from src.llm.providers import LLMProvider
 from src.main import app
+from src.validation.transformers import TransformerDefinition
 
 
 @pytest.fixture
@@ -102,6 +103,17 @@ async def test_structured_completion_with_schema_id(test_client, mock_provider):
         assert data["model"] == "gpt-3.5-turbo"
         assert data["raw_text"] == '{"name": "John", "age": 30}'
         assert data["structured_output"] == {"name": "John", "age": 30}
+        assert data["usage"] == {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+        }
+
+        # Verify the mocks were called correctly
+        mock_openai.assert_called_once_with("gpt-3.5-turbo")
+        mock_json.assert_called_once_with(
+            mock_outlines_model, schema, whitespace_pattern=r"[\n\t ]*", max_tokens=100
+        )
 
 
 @pytest.mark.asyncio
@@ -113,17 +125,18 @@ async def test_structured_completion_with_inline_schema(test_client, mock_provid
         "required": ["name", "age"],
     }
 
-    # Create a mock for the Outlines model
-    mock_outlines_model = MagicMock()
-    mock_outlines_model.return_value = {"name": "John", "age": 30}
-
     with (
         patch(
             "src.api.routers.structured_completions.get_llm_providers",
             return_value={"openai": mock_provider},
         ),
-        patch("outlines.generate.json", return_value=mock_outlines_model) as mock_json,
+        patch("outlines.models.openai") as mock_openai,
+        patch("outlines.generate.json") as mock_json,
     ):
+        # Mock the OpenAI model
+        mock_openai_model = MagicMock()
+        mock_openai.return_value = mock_openai_model
+
         # Mock the generator to return our test output
         mock_generator = MagicMock()
         mock_generator.return_value = {"name": "John", "age": 30}
@@ -150,6 +163,18 @@ async def test_structured_completion_with_inline_schema(test_client, mock_provid
         assert data["model"] == "gpt-3.5-turbo"
         assert data["raw_text"] == '{"name": "John", "age": 30}'
         assert data["structured_output"] == {"name": "John", "age": 30}
+        assert data["usage"] == {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+        }
+
+        # Verify the mocks were called correctly
+        mock_openai.assert_called_once_with("gpt-3.5-turbo")
+        mock_json.assert_called_once_with(
+            mock_openai_model, schema, whitespace_pattern=r"[\n\t ]*", max_tokens=100
+        )
+        mock_generator.assert_called_once_with("Generate a person's information")
 
 
 @pytest.mark.asyncio
@@ -161,20 +186,23 @@ async def test_structured_completion_with_transformers(test_client, mock_provide
         "required": ["name", "age"],
     }
 
-    transformers = [{"name": "lowercase_strings", "config": {}}]
-
-    # Create a mock for the Outlines model
-    mock_outlines_model = MagicMock()
-    mock_outlines_model.return_value = {"name": "John", "age": 30}
+    transformers = [TransformerDefinition(name="lowercase_strings", config={})]
 
     with (
         patch(
             "src.api.routers.structured_completions.get_llm_providers",
             return_value={"openai": mock_provider},
         ),
-        patch("outlines.generate.json", return_value=mock_outlines_model) as mock_json,
-        patch("src.validation.transformers.apply_transformers") as mock_transform,
+        patch("outlines.models.openai") as mock_openai,
+        patch("outlines.generate.json") as mock_json,
+        patch(
+            "src.api.routers.structured_completions.apply_transformers"
+        ) as mock_transform,
     ):
+        # Mock the OpenAI model
+        mock_openai_model = MagicMock()
+        mock_openai.return_value = mock_openai_model
+
         # Mock the generator to return our test output
         mock_generator = MagicMock()
         mock_generator.return_value = {"name": "John", "age": 30}
@@ -191,7 +219,7 @@ async def test_structured_completion_with_transformers(test_client, mock_provide
                 "model": "gpt-3.5-turbo",
                 "prompt": "Generate a person's information",
                 "validation_schema": schema,
-                "transformers": transformers,
+                "transformers": [{"name": "lowercase_strings", "config": {}}],
                 "max_tokens": 100,
                 "temperature": 0.7,
                 "top_p": 1.0,
@@ -205,6 +233,21 @@ async def test_structured_completion_with_transformers(test_client, mock_provide
         assert data["model"] == "gpt-3.5-turbo"
         assert data["raw_text"] == '{"name": "john", "age": 30}'
         assert data["structured_output"] == {"name": "john", "age": 30}
+        assert data["usage"] == {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+        }
+
+        # Verify the mocks were called correctly
+        mock_openai.assert_called_once_with("gpt-3.5-turbo")
+        mock_json.assert_called_once_with(
+            mock_openai_model, schema, whitespace_pattern=r"[\n\t ]*", max_tokens=100
+        )
+        mock_generator.assert_called_once_with("Generate a person's information")
+        mock_transform.assert_called_once_with(
+            {"name": "John", "age": 30}, transformers
+        )
 
 
 @pytest.mark.asyncio

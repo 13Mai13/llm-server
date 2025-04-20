@@ -37,8 +37,9 @@ def mock_providers():
 def mock_metrics():
     """Create a mock for the metrics recorder context manager."""
     with patch("src.api.routers.completions.record_request_metrics") as mock:
-        mock.return_value.__enter__ = MagicMock(return_value=None)
-        mock.return_value.__exit__ = MagicMock(return_value=None)
+        mock_context = MagicMock()
+        mock.return_value.__enter__.return_value = mock_context
+        mock.return_value.__exit__.return_value = None
         yield mock
 
 
@@ -83,7 +84,11 @@ async def test_create_completion_success(client, mock_providers, mock_metrics):
             stop=["END"],
         )
 
+        # Verify metrics were recorded correctly
         mock_metrics.assert_called_once_with("test_provider", "test_model")
+        mock_metrics.return_value.__enter__.return_value.update.assert_called_once_with(
+            input_tokens=10, output_tokens=20
+        )
 
 
 @pytest.mark.asyncio
