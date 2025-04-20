@@ -4,7 +4,6 @@ from src.api.routers import api_router
 from src.api.models import ModelsResponse, ModelInfo
 from src.monitoring.metrics import increment_error_count
 from src.monitoring.logger import get_request_logger
-from outlines import models
 
 
 @api_router.get(
@@ -76,4 +75,4 @@ async def list_outlines_models(fastapi_request: Request) -> ModelsResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
-        ) 
+        )

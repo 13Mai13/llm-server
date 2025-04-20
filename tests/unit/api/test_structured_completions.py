@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import patch, MagicMock, AsyncMock, PropertyMock
 from fastapi.testclient import TestClient
 from fastapi import status
-from src.api.models import UsageInfo
 from src.llm.providers import LLMProvider
 from src.main import app
 
@@ -54,15 +53,21 @@ async def test_structured_completion_with_schema_id(test_client, mock_provider):
     mock_schema.get_schema.return_value = schema
     mock_registry = MagicMock(return_value=mock_schema)
 
-    with patch("src.api.routers.structured_completions.get_llm_providers", return_value={"openai": mock_provider}) as mock_get_providers, \
-         patch("outlines.models.openai", return_value=mock_outlines_model) as mock_openai, \
-         patch("outlines.generate.json", return_value=mock_outlines_model) as mock_json, \
-         patch("src.validation.schema_registry.get_schema_registry", mock_registry):
-        
+    with (
+        patch(
+            "src.api.routers.structured_completions.get_llm_providers",
+            return_value={"openai": mock_provider},
+        ) as mock_get_providers,
+        patch(
+            "outlines.models.openai", return_value=mock_outlines_model
+        ) as mock_openai,
+        patch("outlines.generate.json", return_value=mock_outlines_model) as mock_json,
+        patch("src.validation.schema_registry.get_schema_registry", mock_registry),
+    ):
         # Debug: Print the mocked providers
         providers = mock_get_providers.return_value
         print(f"Mocked providers: {providers.keys()}")
-        
+
         # Debug: Print the request we're about to send
         request_data = {
             "provider": "openai",
@@ -84,7 +89,7 @@ async def test_structured_completion_with_schema_id(test_client, mock_provider):
         # Debug logging
         print(f"Response status: {response.status_code}")
         print(f"Response body: {response.text}")
-        print(f"Mock calls:")
+        print("Mock calls:")
         print(f"get_llm_providers called: {mock_get_providers.called}")
         print(f"openai called: {mock_openai.called}")
         print(f"json called: {mock_json.called}")
@@ -112,9 +117,13 @@ async def test_structured_completion_with_inline_schema(test_client, mock_provid
     mock_outlines_model = MagicMock()
     mock_outlines_model.return_value = {"name": "John", "age": 30}
 
-    with patch("src.api.routers.structured_completions.get_llm_providers", return_value={"openai": mock_provider}), \
-         patch("outlines.models.openai", return_value=mock_outlines_model) as mock_model, \
-         patch("outlines.generate.json", return_value=mock_outlines_model) as mock_json:
+    with (
+        patch(
+            "src.api.routers.structured_completions.get_llm_providers",
+            return_value={"openai": mock_provider},
+        ),
+        patch("outlines.generate.json", return_value=mock_outlines_model) as mock_json,
+    ):
         # Mock the generator to return our test output
         mock_generator = MagicMock()
         mock_generator.return_value = {"name": "John", "age": 30}
@@ -158,15 +167,19 @@ async def test_structured_completion_with_transformers(test_client, mock_provide
     mock_outlines_model = MagicMock()
     mock_outlines_model.return_value = {"name": "John", "age": 30}
 
-    with patch("src.api.routers.structured_completions.get_llm_providers", return_value={"openai": mock_provider}), \
-         patch("outlines.models.openai", return_value=mock_outlines_model) as mock_model, \
-         patch("outlines.generate.json", return_value=mock_outlines_model) as mock_json, \
-         patch("src.validation.transformers.apply_transformers") as mock_transform:
+    with (
+        patch(
+            "src.api.routers.structured_completions.get_llm_providers",
+            return_value={"openai": mock_provider},
+        ),
+        patch("outlines.generate.json", return_value=mock_outlines_model) as mock_json,
+        patch("src.validation.transformers.apply_transformers") as mock_transform,
+    ):
         # Mock the generator to return our test output
         mock_generator = MagicMock()
         mock_generator.return_value = {"name": "John", "age": 30}
         mock_json.return_value = mock_generator
-        
+
         # Mock the transformer to return lowercase output
         mock_transform.return_value = {"name": "john", "age": 30}
 
@@ -203,7 +216,9 @@ async def test_structured_completion_invalid_provider(test_client):
         "required": ["name", "age"],
     }
 
-    with patch("src.api.routers.structured_completions.get_llm_providers", return_value={}):
+    with patch(
+        "src.api.routers.structured_completions.get_llm_providers", return_value={}
+    ):
         response = test_client.post(
             "/api/v1/structured-completions",
             headers={"X-API-Key": "test-api-key"},
@@ -224,7 +239,10 @@ async def test_structured_completion_invalid_provider(test_client):
 @pytest.mark.asyncio
 async def test_structured_completion_missing_schema(test_client):
     """Test structured completion without a schema."""
-    with patch("src.api.routers.structured_completions.get_llm_providers", return_value={"openai": mock_provider}):
+    with patch(
+        "src.api.routers.structured_completions.get_llm_providers",
+        return_value={"openai": mock_provider},
+    ):
         response = test_client.post(
             "/api/v1/structured-completions",
             headers={"X-API-Key": "test-api-key"},

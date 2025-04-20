@@ -10,7 +10,6 @@ from src.api.models import (
     UsageInfo,
 )
 from src.validation.schema_registry import get_schema_registry
-from src.validation.output_validator import validate_output
 from src.validation.transformers import apply_transformers
 from outlines import models, generate
 import json
@@ -47,8 +46,6 @@ async def create_structured_completion(
             detail=f"Provider '{request.provider}' not supported",
         )
 
-    provider = providers[request.provider]
-
     # Get the schema to use for validation
     if request.schema_id:
         schema = await schema_registry.get_schema(request.schema_id)
@@ -66,7 +63,6 @@ async def create_structured_completion(
         )
 
     try:
-        # Record metrics for the request
         with record_request_metrics(request.provider, request.model, structured=True):
             # Initialize Outlines with the provider's model
             if request.provider == "openai":
@@ -80,13 +76,14 @@ async def create_structured_completion(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Provider '{request.provider}' not supported for structured completions",
                 )
-            
+
             # Create a JSON generator with the schema
             generator = generate.json(
                 model,
                 schema,
                 whitespace_pattern=r"[\n\t ]*",  # Allow whitespace in JSON
-                max_tokens=request.max_tokens or 1000,  # Use requested max_tokens or default
+                max_tokens=request.max_tokens
+                or 1000,  # Use requested max_tokens or default
             )
 
             # Generate structured output directly
@@ -101,7 +98,9 @@ async def create_structured_completion(
 
             # Apply transformers if provided
             if request.transformers is not None:
-                structured_output = await apply_transformers(structured_output, request.transformers)
+                structured_output = await apply_transformers(
+                    structured_output, request.transformers
+                )
 
             # Create a response with the structured output
             return StructuredCompletionResponse(

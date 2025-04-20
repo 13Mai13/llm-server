@@ -1,8 +1,7 @@
 import logging
-import json
 from typing import Dict, List, Optional, Any
 from outlines import models, generate
-from pydantic import BaseModel, RootModel
+from pydantic import RootModel
 
 from src.api.models import TransformerDefinition
 from src.validation.transformers import apply_transformers
@@ -55,7 +54,7 @@ async def validate_output(
 
         # Validate the output against the schema
         try:
-            validated = DynamicModel(root=output)
+            DynamicModel(root=output)
         except Exception as e:
             logger.error(f"Error validating output: {str(e)}")
             raise ValueError(f"Output validation failed: {str(e)}")

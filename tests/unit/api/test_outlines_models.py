@@ -3,7 +3,6 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 from fastapi import status
 from src.main import app
-from src.api.models import ModelInfo
 
 
 @pytest.fixture
@@ -20,7 +19,9 @@ async def test_list_outlines_models_success(test_client):
     mock_logger.info = AsyncMock()
     mock_logger.error = AsyncMock()
 
-    with patch("src.api.routers.outlines_models.get_request_logger", return_value=mock_logger):
+    with patch(
+        "src.api.routers.outlines_models.get_request_logger", return_value=mock_logger
+    ):
         response = test_client.get(
             "/api/v1/outlines-models",
             headers={"X-API-Key": "test-api-key"},
@@ -72,7 +73,9 @@ async def test_list_outlines_models_error(test_client):
     mock_logger.info = AsyncMock(side_effect=Exception("Test error"))
     mock_logger.error = AsyncMock()
 
-    with patch("src.api.routers.outlines_models.get_request_logger", return_value=mock_logger):
+    with patch(
+        "src.api.routers.outlines_models.get_request_logger", return_value=mock_logger
+    ):
         response = test_client.get(
             "/api/v1/outlines-models",
             headers={"X-API-Key": "test-api-key"},
@@ -85,4 +88,4 @@ async def test_list_outlines_models_error(test_client):
 
         # Verify the logger was called
         mock_logger.info.assert_called_once()
-        mock_logger.error.assert_called_once() 
+        mock_logger.error.assert_called_once()
