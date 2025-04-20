@@ -1,0 +1,101 @@
+{
+    "config": {
+        "provider": "groq",
+        "model": "llama3-8b-8192",
+        "max_tokens": 1000,
+        "temperature": 0.7
+    },
+    "test_cases": [
+        {
+            "name": "Simple JSON Object",
+            "prompt": "Generate a person's information including name, age, and occupation.",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The person's full name"
+                    },
+                    "age": {
+                        "type": "integer",
+                        "description": "The person's age"
+                    },
+                    "occupation": {
+                        "type": "string",
+                        "description": "The person's current occupation"
+                    }
+                },
+                "required": ["name", "age", "occupation"]
+            }
+        },
+        {
+            "name": "Nested JSON Object",
+            "prompt": "Generate information about a book including its title, author, and publication details.",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The book's title"
+                    },
+                    "author": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "The author's full name"
+                            },
+                            "nationality": {
+                                "type": "string",
+                                "description": "The author's nationality"
+                            }
+                        },
+                        "required": ["name", "nationality"]
+                    },
+                    "publication": {
+                        "type": "object",
+                        "properties": {
+                            "year": {
+                                "type": "integer",
+                                "description": "The year of publication"
+                            },
+                            "publisher": {
+                                "type": "string",
+                                "description": "The publishing company"
+                            }
+                        },
+                        "required": ["year", "publisher"]
+                    }
+                },
+                "required": ["title", "author", "publication"]
+            }
+        },
+        {
+            "name": "Array of Objects",
+            "prompt": "Generate a list of three products with their details.",
+            "schema": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "The product name"
+                        },
+                        "price": {
+                            "type": "number",
+                            "description": "The product price"
+                        },
+                        "category": {
+                            "type": "string",
+                            "description": "The product category"
+                        }
+                    },
+                    "required": ["name", "price", "category"]
+                },
+                "minItems": 3,
+                "maxItems": 3
+            }
+        }
+    ]
+} 
