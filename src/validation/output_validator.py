@@ -1,8 +1,8 @@
 import logging
 import json
 from typing import Dict, List, Optional, Any
-from outlines import models
-from outlines import generate
+from outlines import models, generate
+from pydantic import BaseModel, RootModel
 
 from src.api.models import TransformerDefinition
 from src.validation.transformers import apply_transformers
@@ -31,14 +31,34 @@ async def validate_output(
         ValueError: If the output is invalid
     """
     try:
+        # Create a Pydantic model from the schema
+        class DynamicModel(RootModel[Dict[str, Any]]):
+            pass
+
+        # Initialize Outlines with a model
+        model = models.openai("gpt-3.5-turbo")
+
+        # Create a JSON generator with the schema
+        generator = generate.json(
+            model,
+            schema,
+            whitespace_pattern=r"[\n\t ]*",  # Allow whitespace in JSON
+            max_tokens=1000,  # Increase max tokens for complex schemas
+        )
+
+        # Generate structured output
         try:
-            # First try to parse as JSON directly
-            output = json.loads(text)
-            logger.debug("Output is valid JSON, parsing directly")
-        except json.JSONDecodeError:
-            logger.debug("Output is not valid JSON, using Outlines to structure")
-            # Use Outlines to structure the text according to the schema
-            output = _structure_with_outlines(text, schema)
+            output = generator(text)
+        except Exception as e:
+            logger.error(f"Error generating structured output: {str(e)}")
+            raise ValueError(f"Failed to generate structured output: {str(e)}")
+
+        # Validate the output against the schema
+        try:
+            validated = DynamicModel(root=output)
+        except Exception as e:
+            logger.error(f"Error validating output: {str(e)}")
+            raise ValueError(f"Output validation failed: {str(e)}")
 
         # Apply transformers if provided
         if transformers is not None:
