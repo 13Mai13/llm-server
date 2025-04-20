@@ -118,8 +118,9 @@ graph TD
 ### Prerequisites
 - Python 3.12+
 - UV for dependency management
+- Docker (optional)
 
-### Installation
+### Local Installation
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/llm-server.git
@@ -143,6 +144,24 @@ docker build -t llm-server .
 # Run the container
 docker run -p 8000:8000 --env-file .env llm-server
 ```
+
+### Configuration
+Create a `.env` file with your configuration:
+```env
+HOST=0.0.0.0
+PORT=8000
+LLM_PROVIDER_API_KEY=your_api_key
+```
+
+## API Documentation
+
+Once the server is running, visit `/docs` for the interactive API documentation.
+
+### Key Endpoints
+- `GET /health`: Health check
+- `GET /models`: List available models
+- `POST /completions`: Generate completions
+- `GET /metrics`: Get performance metrics
 
 ## Testing
 
