@@ -33,7 +33,11 @@ async def authenticate_request(
     if not api_key:
         api_key = request.cookies.get("api_key")
 
-    if not api_key or api_key != settings.API_KEY:
+    # Strip quotes from both the provided API key and the settings API key
+    api_key = api_key.strip("\"'") if api_key else None
+    settings_api_key = settings.API_KEY.strip("\"'") if settings.API_KEY else None
+
+    if not api_key or api_key != settings_api_key:
         logger.warning(
             f"Authentication failed for request from {request.client.host if request.client else 'unknown'}"
         )

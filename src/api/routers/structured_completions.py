@@ -7,10 +7,13 @@ from src.api.models import (
     StructuredCompletionRequest,
     StructuredCompletionResponse,
     ErrorResponse,
+    UsageInfo,
 )
 from src.validation.schema_registry import get_schema_registry
-from src.validation.output_validator import validate_output
+from src.validation.transformers import apply_transformers
+from outlines import models, generate
 import json
+import uuid
 
 logger = get_request_logger()
 
@@ -43,8 +46,6 @@ async def create_structured_completion(
             detail=f"Provider '{request.provider}' not supported",
         )
 
-    provider = providers[request.provider]
-
     # Get the schema to use for validation
     if request.schema_id:
         schema = await schema_registry.get_schema(request.schema_id)
@@ -62,42 +63,59 @@ async def create_structured_completion(
         )
 
     try:
-        # Record metrics for the request
         with record_request_metrics(request.provider, request.model, structured=True):
-            # Generate text from provider
-            response = await provider.generate(
-                model=request.model,
-                prompt=request.prompt,
-                max_tokens=request.max_tokens,
-                temperature=request.temperature,
-                top_p=request.top_p,
-                stop=request.stop,
-            )
-
-            # Parse the JSON response
-            try:
-                json.loads(response.text)
-            except json.JSONDecodeError:
+            # Initialize Outlines with the provider's model
+            if request.provider == "openai":
+                model = models.openai(request.model)
+            elif request.provider == "anthropic":
+                model = models.anthropic(request.model)
+            elif request.provider == "groq":
+                model = models.groq(request.model)
+            else:
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Provider returned invalid JSON output",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Provider '{request.provider}' not supported for structured completions",
                 )
 
-            # Validate and transform output
-            validated_output = await validate_output(
-                text=response.text,
-                schema=schema,
-                transformers=request.transformers,
+            # Create a JSON generator with the schema
+            generator = generate.json(
+                model,
+                schema,
+                whitespace_pattern=r"[\n\t ]*",  # Allow whitespace in JSON
+                max_tokens=request.max_tokens
+                or 1000,  # Use requested max_tokens or default
             )
 
+            # Generate structured output directly
+            try:
+                structured_output = generator(request.prompt)
+            except Exception as e:
+                logger.error(f"Error generating structured output: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to generate structured output: {str(e)}",
+                )
+
+            # Apply transformers if provided
+            if request.transformers is not None:
+                structured_output = await apply_transformers(
+                    structured_output, request.transformers
+                )
+
+            # Create a response with the structured output
             return StructuredCompletionResponse(
-                id=response.id,
+                id=str(uuid.uuid4()),  # Generate a unique ID
                 provider=request.provider,
                 model=request.model,
-                raw_text=response.text,
-                structured_output=validated_output,
-                usage=response.usage,
+                raw_text=json.dumps(structured_output),  # Convert back to JSON string
+                structured_output=structured_output,
+                usage=UsageInfo(  # TODO: Get actual usage from the model
+                    prompt_tokens=0,
+                    completion_tokens=0,
+                    total_tokens=0,
+                ),
             )
+
     except Exception as e:
         logger.error(f"Error in structured completion: {str(e)}", exc_info=True)
         raise HTTPException(
