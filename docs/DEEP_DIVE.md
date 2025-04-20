@@ -58,6 +58,52 @@ The architecture follows a layered approach:
 3. **Validation Layer**: Ensures structured input/output and type safety
 4. **Metrics Layer**: Collects and tracks performance metrics
 
+### Technical Details
+
+#### Connection Pooling and Batch Processing
+
+The system implements two distinct approaches for handling LLM requests:
+
+1. **Connection Pooling**:
+   - Shared across all endpoints (structured and unstructured)
+   - Manages HTTP connections to LLM providers
+   - Optimizes resource utilization
+   - Handles connection lifecycle
+   - Key features:
+     - Maximum connection limits
+     - Connection reuse
+     - Timeout management
+     - Error handling
+
+2. **Batch Processing**:
+   - Only used for unstructured endpoints
+   - Improves throughput by grouping requests
+   - Not used for structured endpoints due to:
+     - Schema validation requirements
+     - Direct generation needs
+     - Outlines library constraints
+
+
+#### Implementation Details
+
+1. **Connection Pool**:
+   - Global pool per provider
+   - Async context manager for connection acquisition
+   - Automatic connection cleanup
+   - Resource limits enforcement
+
+2. **Batch Processing**:
+   - Dynamic batch size
+   - Timeout management
+   - Error handling
+   - Metrics collection
+
+3. **Structured Generation**:
+   - Outlines library integration
+   - Schema validation
+   - Direct generation
+   - Error handling
+
 ### Validation Layer Details
 
 The Validation Layer is a critical component that ensures:
@@ -127,18 +173,125 @@ This was tricky to perform since I'm using a MacBookAir, with colima and docker 
 3. Other Resources:
    * 60GiB disk space
 
-Conclusions:
-* Since we have 2 CPUs, using 2 threads in wrk makes sense
-* With 2GiB of memory, we should be conservative with concurrent connections -> Each connection consumes some memory for buffers and state
-* The 60GiB disk space suggests we can run longer tests without worrying about disk space
-
 ### Testing Scenarios
 
-[Testing scenarios to be added]
+We compared structured vs unstructured output endpoints across different models and test cases:
+
+1. **Simple JSON Object** (23 input tokens, 46 output tokens)
+2. **Nested JSON Object** (48 input tokens, 396 output tokens)
+3. **Array of Objects** (68 input tokens, 760 output tokens)
+
+Models tested:
+- llama3-8b-8192 (Groq)
+- gpt-3.5-turbo
+- gpt-4
+- claude-2
+- claude-3-opus
 
 ### Results Analysis
 
-[Results analysis to be added]
+#### Performance Breakdown
+
+Based on the test results, here's a detailed performance analysis per endpoint and test case:
+
+1. **Simple JSON Object** (23 input tokens, 46 output tokens):
+   - Unstructured (Groq llama3-8b-8192): 570.5ms
+   - Structured (Cloud Models):
+     - GPT-3.5: 12.9ms
+     - GPT-4: 11.2ms
+     - Claude-2: 11.1ms
+     - Claude-3: 11.4ms
+   - Average Structured: 11.7ms
+
+2. **Nested JSON Object** (48 input tokens, 396 output tokens):
+   - Unstructured (Groq llama3-8b-8192): 785.0ms
+   - Structured (Cloud Models):
+     - GPT-3.5: 11.6ms
+     - GPT-4: 14.2ms
+     - Claude-2: 11.6ms
+     - Claude-3: 11.4ms
+   - Average Structured: 12.2ms
+
+3. **Array of Objects** (68 input tokens, 760 output tokens):
+   - Unstructured (Groq llama3-8b-8192): 669.8ms
+   - Structured (Cloud Models):
+     - GPT-3.5: 12.1ms
+     - GPT-4: 11.6ms
+     - Claude-2: 11.3ms
+     - Claude-3: 11.5ms
+   - Average Structured: 11.6ms
+
+**Key Observations**:
+1. **Groq Performance**:
+   - Average latency: 675.1ms
+   - Range: 570.5ms - 785.0ms
+   - Most consistent across test cases
+
+2. **Cloud Models Performance**:
+   - Average latency: 11.8ms
+   - Range: 11.1ms - 14.2ms
+   - Extremely consistent across different models
+   - Minimal variation with increasing token count
+
+3. **Token Impact**:
+   - Input tokens: 23 → 48 → 68
+   - Output tokens: 46 → 396 → 760
+   - No significant correlation between token count and latency
+
+4. **Model Comparison**:
+   - Claude-2: Most consistent (11.1-11.6ms)
+   - GPT-4: Slightly higher variance (11.2-14.2ms)
+   - GPT-3.5: Middle range (11.6-12.9ms)
+   - Claude-3: Very consistent (11.4-11.5ms)
+
+#### Latency Comparison
+
+1. **Groq Model (llama3-8b-8192)**:
+   - Unstructured endpoint: 570-785ms latency
+   - No structured endpoint available
+   - Consistent performance across test cases
+   - Higher latency compared to other cloud providers
+
+2. **Other Cloud Models (gpt-3.5-turbo, gpt-4, claude-2, claude-3-opus)**:
+   - Structured endpoint: 11-14ms latency
+   - Extremely consistent performance across all models
+   - Minimal variation between different test cases
+
+#### Key Findings
+
+1. **Structured Output Performance**:
+   - Cloud models show remarkably consistent performance
+   - Average latency around 11-14ms across all test cases
+   - Minimal overhead from structured output validation
+   - No significant difference between models
+
+2. **Token Impact**:
+   - Simple JSON: 23 input tokens, 46 output tokens
+   - Nested JSON: 48 input tokens, 396 output tokens
+   - Array of Objects: 68 input tokens, 760 output tokens
+   - Token count increase doesn't significantly impact latency
+
+3. **Model Comparison**:
+   - Groq (llama3) shows higher latency but consistent performance
+   - Other cloud providers (OpenAI, Anthropic) show similar low-latency performance
+   - No clear winner among the low-latency providers
+
+#### Conclusions
+
+1. **Structured Output Efficiency**:
+   - Structured output validation adds minimal overhead
+   - Cloud models handle structured output very efficiently
+   - Consistent performance across different complexity levels
+
+2. **Performance Characteristics**:
+   - Most cloud models: ~11-14ms latency
+   - Groq (llama3): ~570-785ms latency
+   - Token count has minimal impact on latency
+
+3. **Recommendations**:
+   - Structured output is highly efficient for most cloud models
+   - Consider Groq (llama3) for specific use cases where latency is less critical
+   - Other cloud providers provide consistent, low-latency performance
 
 ## Scaling Considerations
 
