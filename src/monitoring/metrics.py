@@ -80,6 +80,47 @@ class MetricsStore:
         # Thread safety
         self.lock = threading.Lock()
 
+    def clear(self) -> None:
+        """Clear all metrics."""
+        with self.lock:
+            # Reset basic request metrics
+            self.request_count = 0
+            self.error_count = 0
+            self.request_duration_sum = 0.0
+            self.request_duration_count = 0
+
+            # Clear HTTP metrics
+            self.requests_by_path.clear()
+            self.requests_by_method.clear()
+            self.requests_by_status.clear()
+            self.errors_by_type.clear()
+
+            # Clear LLM metrics
+            self.llm_requests.clear()
+            self.llm_models.clear()
+            self.llm_tokens_input.clear()
+            self.llm_tokens_output.clear()
+            self.llm_costs.clear()
+
+            # Clear timing metrics
+            self.llm_durations.clear()
+            self.llm_time_to_first_token.clear()
+            self.llm_time_per_token.clear()
+
+            # Clear error tracking
+            self.llm_errors.clear()
+            self.llm_rate_limits.clear()
+            self.llm_structured_success.clear()
+            self.llm_structured_failures.clear()
+
+            # Reset batch metrics
+            self.batch_sizes.clear()
+            self.batch_durations.clear()
+            self.batch_success_rate = 0.0
+
+            # Clear request history
+            self.request_history.clear()
+
     def _calculate_percentiles(self, values: List[float]) -> Dict[str, float]:
         """Calculate P50, P90, P95, P99 percentiles for a list of values."""
         if not values:

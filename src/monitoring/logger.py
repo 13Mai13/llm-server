@@ -130,7 +130,7 @@ def setup_logging() -> None:
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
 
-    if settings.ENV == "development":
+    if settings.DEBUG:
         console_handler.setFormatter(text_formatter)
     else:
         console_handler.setFormatter(json_formatter)
@@ -151,7 +151,7 @@ def setup_logging() -> None:
 
     logger = logging.getLogger(__name__)
     logger.info(
-        f"Logging initialized with level {settings.LOG_LEVEL} in {settings.ENV} environment"
+        f"Logging initialized with level {settings.LOG_LEVEL} in {'development' if settings.DEBUG else 'production'} environment"
     )
 
 
