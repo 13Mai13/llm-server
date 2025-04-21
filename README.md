@@ -1,6 +1,6 @@
 # LLM Inference Server
 
-A high-performance LLM inference server with structured output validation, designed for distributed systems and optimized for large-scale LLM operations.
+A high-performance LLM inference server with structured and unstructured output validation, designed for distributed systems and optimized for large-scale LLM operations.
 
 ## Features
 
@@ -17,20 +17,31 @@ A high-performance LLM inference server with structured output validation, desig
 git clone https://github.com/yourusername/llm-server.git
 cd llm-server
 
+## Local Dev
 # Install dependencies
 uv sync
 
 # Run the server
 uvicorn src.main:app --reload
+
+## Docker
+# Build the Docker image
+docker build -t llm-server .
+
+# Run the container
+docker run -d -p 8000:8000 --env-file .env llm-server
+
+# Verify the container is running
+docker ps
+
 ```
 
 ## Configuration
 
-Create a `.env` file with your configuration:
+Create a `.env` file with your configuration, see [example.env](/example.env) or the basics or [config.py](./src/config.py) for all the posibiities
 ```env
-HOST=0.0.0.0
-PORT=8000
-LLM_PROVIDER_API_KEY=your_api_key
+GROQ_API_KEY = [YOUR_API_KEY]
+API_KEY = [YOUR_AUTH_API_KEY]
 ```
 
 ## API Documentation
@@ -47,10 +58,6 @@ python -m pytest
 python -m pytest --cov=src
 ```
 
-## License
-
-MIT
-
 ## Deep Dive
 
 For a detailed technical analysis, architecture decisions, and performance considerations, see [DEEP_DIVE.md](docs/DEEP_DIVE.md). 
@@ -58,3 +65,7 @@ For a detailed technical analysis, architecture decisions, and performance consi
 ## Performace test
 
 There is a section on how to run the performance test too, see [Performance_test.md](docs/performance_testing.md)
+
+## License
+
+MIT
